@@ -16,31 +16,40 @@ from gymnasium import spaces
 gym_module = gym
 env_class = gym.Env
 
-DIRECTIONS = [
-    (0.5, 0.5),  # Neutral
-    (0.0, 1.0),  # Up
-    (1.0, 1.0),  # Up-Right
-    (1.0, 0.5),  # Right
-    (1.0, 0.0),  # Down-Right
-    (0.5, 0.0),  # Down
-    (0.0, 0.0),  # Down-Left
-    (0.0, 0.5),  # Left
-    (0.0, 1.0)   # Up-Left
+cardinal_sticks = [
+    (0, 0.5),
+    (1, 0.5),
+    (0.5, 0),
+    (0.5, 1),
+    (0.5, 0.5)
 ]
+tilt_sticks = [
+    (0.4, 0.5),
+    (0.6, 0.5),
+    (0.5, 0.4),
+    (0.5, 0.6)
+]
+diagonal_sticks = [
+    (0, 0), (0, 0.5), (0, 1),
+    (0.5, 0), (0.5, 0.5), (0.5, 1),
+    (1, 0), (1, 0.5), (1, 1)
+]
+neutral_stick = [(0.5, 0.5)]
 
-BUTTONS = [
-    enums.Button.BUTTON_L,
-    enums.Button.BUTTON_Z,
-    enums.Button.BUTTON_A,
-    enums.Button.BUTTON_B,
-    enums.Button.BUTTON_X,
-    None  # No button pressed
-]
+SimpleButton = enums.Button
 
 ACTION_SPACE = []
-for button in BUTTONS:
-    for direction in DIRECTIONS:
-        ACTION_SPACE.append((button, direction))
+for btn in [SimpleButton.BUTTON_A, SimpleButton.BUTTON_B]:
+    for stick in cardinal_sticks:
+        ACTION_SPACE.append((btn, stick))
+for stick in tilt_sticks:
+    ACTION_SPACE.append((SimpleButton.BUTTON_A, stick))
+for btn in [None, SimpleButton.BUTTON_L]:
+    for stick in diagonal_sticks:
+        ACTION_SPACE.append((btn, stick))
+for btn in [SimpleButton.BUTTON_Z, SimpleButton.BUTTON_Y]:
+    for stick in neutral_stick:
+        ACTION_SPACE.append((btn, stick))
 
 
 class MeleeEnv(env_class):
@@ -62,15 +71,22 @@ class MeleeEnv(env_class):
                 dtype=np.float32
             )
         
-        self.console = melee.Console(
-            path=self.config["dolphin_path"],
-            slippi_address=self.config["slippi_address"],
-            slippi_port=self.config["slippi_port"],
-            gfx_backend=self.config["gfx_backend"] if "gfx_backend" in self.config else None,
-            disable_audio=self.config["disable_audio"] if "disable_audio" in self.config else False,
-            #use_exi_inputs=self.config["use_exi_inputs"] if "use_exi_inputs" in self.config else False,
-            #enable_ffw=self.config["enable_ffw"] if "enable_ffw" in self.config else False
-        )
+        console_params = {
+            "path": self.config["dolphin_path"],
+            "slippi_address": self.config["slippi_address"],
+            "slippi_port": self.config["slippi_port"]
+        }
+        
+        if "gfx_backend" in self.config:
+            console_params["gfx_backend"] = self.config["gfx_backend"]
+        if "disable_audio" in self.config:
+            console_params["disable_audio"] = self.config["disable_audio"]
+        if "use_exi_inputs" in self.config:
+            console_params["use_exi_inputs"] = self.config["use_exi_inputs"]
+        if "enable_ffw" in self.config:
+            console_params["enable_ffw"] = self.config["enable_ffw"]
+        
+        self.console = melee.Console(**console_params)
 
         self.console.run(iso_path=self.config["iso_path"])
 
@@ -192,7 +208,7 @@ class MeleeEnv(env_class):
                 )
             elif state in (Menu.IN_GAME, Menu.SUDDEN_DEATH):
                 self.in_game_frame_counter = 0  
-                self.prev_gamestate = gs  # 保存初始狀態
+                self.prev_gamestate = gs
                 observation = form_state(gs, self.ports[0], self.ports[1], stage_mode=1)
                 
                 info = {
@@ -242,7 +258,7 @@ class MeleeEnv(env_class):
             elif cpu_stock == 0:
                 self.game_over_flag = "win"
             elif bot_stock == 0:
-                self.game_over_flag = "loss"
+                self.game_over_flag = "lose"
         if next_gs.menu_state in (Menu.IN_GAME, Menu.SUDDEN_DEATH):
             self.in_game_frame_counter += 1
 
@@ -263,9 +279,9 @@ class MeleeEnv(env_class):
             if next_gs.menu_state in (Menu.IN_GAME, Menu.SUDDEN_DEATH):
                 final_reward = 0.0
                 if self.game_over_flag == "win":
-                    final_reward = 5.0 
+                    final_reward = 1.0 
                 elif self.game_over_flag == "lose":
-                    final_reward = -5.0
+                    final_reward = -1.0
                 reward += final_reward
         #elif next_gs.menu_state in (Menu.CHARACTER_SELECT, Menu.STAGE_SELECT):
         #    terminated = True
@@ -293,4 +309,3 @@ class MeleeEnv(env_class):
         for ctrl in self.ctrls:
             ctrl.disconnect()
         self.console.stop()
-        

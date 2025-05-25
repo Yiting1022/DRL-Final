@@ -1,0 +1,5 @@
+pyenet@git+https://github.com/piqueserver/pyenet
+py-ubjson
+numpy
+packaging
+gymnasium

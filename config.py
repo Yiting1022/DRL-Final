@@ -11,13 +11,13 @@ CHARACTER_OPTIONS = {
     0: [Character.FOX],
     1: [
         Character.FOX,
-        Character.PIKACHU,
-        Character.YOSHI,
-        Character.KIRBY,
-        Character.SAMUS,
-        Character.DK,
-        Character.LINK,
-        Character.MARIO,
+        #Character.PIKACHU,
+        #Character.YOSHI,
+        #Character.KIRBY,
+        #Character.SAMUS,
+        #Character.DK,
+        #Character.LINK,
+        #Character.MARIO,
     ]
 }
 
@@ -42,6 +42,6 @@ CONFIG = {
     "stages": STAGE_OPTIONS,
     "gfx_backend": "Null",
     "disable_audio": True,
-    "use_exi_inputs": True,
-    "enable_ffw": True
+    #"use_exi_inputs": True,
+    #"enable_ffw": True
 }

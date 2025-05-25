@@ -35,11 +35,11 @@ def form_state(gs, player_port, opp_port, stage_mode=1, normalize=True):
             float(p.on_ground),
             float(p.off_stage),
             p.jumps_left,
-            p.facing,
+            float(p.facing),
             float(p.invulnerable),
             p.action.value,
             p.action_frame,
-            float(p.hitstun_frames_left > 0),
+            p.hitstun_frames_left,
             p.hitlag_left,
             p.stock,
             p.shield_strength,
@@ -50,13 +50,14 @@ def form_state(gs, player_port, opp_port, stage_mode=1, normalize=True):
             proj_x,
             proj_y
         ]
+        
+        
 
     player_feats = ply_feats(player)
     opp_feats = ply_feats(opp)
 
     state = np.array(player_feats + opp_feats, dtype=np.float32)
     
-    # 應用Phillip風格的規範化
     if normalize:
     
         xy_scale = 0.1
@@ -72,7 +73,7 @@ def form_state(gs, player_port, opp_port, stage_mode=1, normalize=True):
         state[4] *= speed_scale     # speed_ground_x_self
         state[5] *= speed_scale     # speed_y_self
         # 7-10是布爾值，不需要縮放
-        # 11是action_value, 可以考慮使用one-hot編碼，但先保持原樣
+        # 11是action_value
         state[12] *= frame_scale    # action_frame
         # 13是布爾值
         state[14] *= frame_scale    # hitlag_left
@@ -125,29 +126,6 @@ def process_damages(prev_gs, next_gs, port):
     
     return max(next_percent - prev_percent, 0)
 
-def calculate_reward(prev_gs, next_gs, player_port, opp_port, damage_ratio=0.01, gamma=0.99):
-    if prev_gs is None or next_gs is None:
-        return 0.0
-
-    player_death = process_deaths(prev_gs, next_gs, player_port)
-    opp_death = process_deaths(prev_gs, next_gs, opp_port)
-    player_damage = process_damages(prev_gs, next_gs, player_port)
-    opp_damage = process_damages(prev_gs, next_gs, opp_port)
-
-    player_loss = player_death + damage_ratio * player_damage
-    opp_loss = opp_death + damage_ratio * opp_damage
-
-    reward = opp_loss - player_loss
-
-    if prev_gs.menu_state == next_gs.menu_state:
-
-        prev_potential = get_distance(prev_gs, player_port, opp_port)
-        curr_potential = get_distance(next_gs, player_port, opp_port)
-        shaping_reward = gamma * curr_potential - prev_potential
-        reward += 0.01 * shaping_reward 
-    
-    return reward
-
 def get_distance(gs, player_port, opp_port):
 
     x0 = gs.players[player_port].position.x
@@ -159,3 +137,43 @@ def get_distance(gs, player_port, opp_port):
     dy = y1 - y0
     
     return -np.sqrt(dx*dx + dy*dy)
+
+def add_potential_based_reward(prev_gs, next_gs, player_port, opp_port, base_reward, gamma=0.99):
+
+    if prev_gs is None or next_gs is None:
+        return base_reward
+    
+    # Calculate potential function (like distance to opponent)
+    prev_potential = get_distance(prev_gs, player_port, opp_port)
+    next_potential = get_distance(next_gs, player_port, opp_port)
+    
+    # Reward shaping formula: F(s,s') = γΦ(s') - Φ(s)
+    shaping_reward = gamma * next_potential - prev_potential
+    
+    return base_reward + shaping_reward
+
+def calculate_reward(prev_gs, next_gs, player_port, opp_port, damage_ratio=0.01, gamma=0.99):
+    if prev_gs is None or next_gs is None:
+        return 0.0
+
+    player_death = process_deaths(prev_gs, next_gs, player_port)
+    opp_death = process_deaths(prev_gs, next_gs, opp_port)
+    player_damage = process_damages(prev_gs, next_gs, player_port)
+    opp_damage = process_damages(prev_gs, next_gs, opp_port)
+    
+    # Remove debug print for production code
+    #print(f"player_death: {player_death}, opp_death: {opp_death}, player_damage: {player_damage}, opp_damage: {opp_damage}")
+
+    player_loss = player_death + damage_ratio * player_damage
+    opp_loss = opp_death + damage_ratio * opp_damage
+
+    base_reward = opp_loss - player_loss
+    
+    #TODO: Add some reward shaping
+    # Add potential-based reward shaping
+    # final_reward = add_potential_based_reward(prev_gs, next_gs, player_port, opp_port, base_reward, gamma)
+    # if base_reward != 0:
+    #    print(f"player_death: {player_death}, opp_death: {opp_death}, player_damage: {player_damage}, opp_damage: {opp_damage}")
+    #    print(f"base_reward: {base_reward}")
+        
+    return base_reward
