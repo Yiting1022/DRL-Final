@@ -85,6 +85,8 @@ class MeleeEnv(env_class):
             console_params["use_exi_inputs"] = self.config["use_exi_inputs"]
         if "enable_ffw" in self.config:
             console_params["enable_ffw"] = self.config["enable_ffw"]
+        if "polling_mode" in self.config:
+            console_params["polling_mode"] = self.config["polling_mode"]
         
         self.console = melee.Console(**console_params)
 
@@ -298,6 +300,12 @@ class MeleeEnv(env_class):
         if terminated:
             print(f"DEBUG: Game Over - {self.game_over_flag}")
             print(f"DEBUG: Final Reward: {self.total_reward}")
+            # 新增: episode end 時 info 加入 total reward 與 stock 比數
+            info["episode_total_reward"] = self.total_reward
+            info["final_stocks"] = {
+                "bot": next_gs.players[self.ports[0]].stock,
+                "cpu": next_gs.players[self.ports[1]].stock
+            }
         
         #print(f"frame: {self.in_game_frame_counter}, menu_state: {next_gs.menu_state}")
         return observation, reward, terminated, truncated, info
