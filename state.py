@@ -174,7 +174,7 @@ def calculate_reward(prev_gs, next_gs, player_port, opp_port, damage_ratio=0.005
     # not offstage bonus
     # shape_reward = 0.0
     #if next_gs.players[player_port].off_stage:
-    #    shape_reward +=  0.01 * (abs(prev_gs.players[player_port].position.x) - abs(next_gs.players[player_port].position.x))
+    #    shape_reward -=  0.01 * (abs(prev_gs.players[player_port].position.x) - abs(next_gs.players[player_port].position.x))
     
     # close combat bonus
     #shape_reward += 0.01 * get_distance(next_gs, player_port, opp_port)
