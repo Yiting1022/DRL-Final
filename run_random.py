@@ -8,7 +8,7 @@ import sys
 
 import gymnasium as gym
 from gymnasium import spaces
-
+from utils import SkipFrame  # 新增這行
 # Import the environment class
 from env import MeleeEnv, ACTION_SPACE
 
@@ -16,7 +16,6 @@ from env import MeleeEnv, ACTION_SPACE
 def run_random_agent():
     """Run a random agent in the Melee environment"""
     env = MeleeEnv()
-    
     # Track statistics
     episode_count = 0
     total_rewards = []

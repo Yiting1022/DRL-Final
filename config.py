@@ -1,6 +1,7 @@
 from melee import Character, Stage
-
-DOLPHIN_PATH = "Images/Headless/squashfs-root/usr/bin/"  
+#MODE = "Headless" 
+MODE = "NoGui"
+DOLPHIN_PATH = f"Images/{MODE}/squashfs-root/usr/bin/"  
 SLIPPI_ADDR = "127.0.0.1"
 ISO_PATH = "ssbm.iso"
 SLIPPI_PORT = 51489
@@ -8,16 +9,16 @@ PORTS = [1, 2]
 COSTUMES = [1, 2] 
 
 CHARACTER_OPTIONS = {
-    0: [Character.FOX],
+    0: [Character.KIRBY],
     1: [
-        Character.FOX,
+        Character.MARIO,
         #Character.PIKACHU,
         #Character.YOSHI,
         #Character.KIRBY,
         #Character.SAMUS,
         #Character.DK,
         #Character.LINK,
-        #Character.MARIO,
+        #Character.MARIO
     ]
 }
 
@@ -40,8 +41,10 @@ CONFIG = {
     "levels": LEVEL_OPTIONS,
     "costumes": COSTUMES,
     "stages": STAGE_OPTIONS,
-    "gfx_backend": "Null",
+    #"gfx_backend": "Null",
     "disable_audio": True,
     #"use_exi_inputs": True,
-    #"enable_ffw": True
+    #"enable_ffw": True,
+    #"polling_mode": True,
+    #"blocking_input": True,
 }

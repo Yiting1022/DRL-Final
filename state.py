@@ -105,7 +105,6 @@ def form_state(gs, player_port, opp_port, stage_mode=1, normalize=True):
         state[43] *= frame_scale    # invulnerability_left
         state[44] *= xy_scale       # proj_x
         state[45] *= xy_scale       # proj_y
-    
     return state
 
 def is_dying(player):
@@ -116,7 +115,8 @@ def process_deaths(prev_gs, next_gs, port):
         return 0
     prev_dead = is_dying(prev_gs.players[port])
     next_dead = is_dying(next_gs.players[port])
-    return float((not prev_dead) and next_dead)
+    death_percent = prev_gs.players[port].percent
+    return ((not prev_dead) and next_dead), death_percent
 
 def process_damages(prev_gs, next_gs, port):
     if prev_gs is None or next_gs is None:
@@ -138,42 +138,45 @@ def get_distance(gs, player_port, opp_port):
     
     return -np.sqrt(dx*dx + dy*dy)
 
-def add_potential_based_reward(prev_gs, next_gs, player_port, opp_port, base_reward, gamma=0.99):
+def offstage_distance(gs, player_port):
+    player_y = gs.players[player_port].position.y
+    if player_y < 0:  # Offstage
+        return -player_y
+    return 0
 
-    if prev_gs is None or next_gs is None:
-        return base_reward
-    
-    # Calculate potential function (like distance to opponent)
-    prev_potential = get_distance(prev_gs, player_port, opp_port)
-    next_potential = get_distance(next_gs, player_port, opp_port)
-    
-    # Reward shaping formula: F(s,s') = γΦ(s') - Φ(s)
-    shaping_reward = gamma * next_potential - prev_potential
-    
-    return base_reward + shaping_reward
+def calculate_death_loss(percent, death, percent_ratio=0.005):
+    if death == 0:
+        return 0.0
+    return 1 - (percent * percent_ratio) if 1 - (percent * percent_ratio) > 0 else 0.0
 
-def calculate_reward(prev_gs, next_gs, player_port, opp_port, damage_ratio=0.01, gamma=0.99):
+
+def calculate_reward(prev_gs, next_gs, player_port, opp_port, damage_ratio=0.005, gamma=0.99):
     if prev_gs is None or next_gs is None:
         return 0.0
 
-    player_death = process_deaths(prev_gs, next_gs, player_port)
-    opp_death = process_deaths(prev_gs, next_gs, opp_port)
+    player_death, player_death_percent = process_deaths(prev_gs, next_gs, player_port)
+    opp_death, opp_death_percent = process_deaths(prev_gs, next_gs, opp_port)
     player_damage = process_damages(prev_gs, next_gs, player_port)
     opp_damage = process_damages(prev_gs, next_gs, opp_port)
+    #player_distance = get_distance(next_gs, player_port, opp_port)
+    #player_offstage_distance = offstage_distance(next_gs, player_port)
+    #opp_distance = get_distance(next_gs, opp_port, player_port)
+    #opp_offstage_distance = offstage_distance(next_gs, opp_port)
     
-    # Remove debug print for production code
-    #print(f"player_death: {player_death}, opp_death: {opp_death}, player_damage: {player_damage}, opp_damage: {opp_damage}")
-
-    player_loss = player_death + damage_ratio * player_damage
-    opp_loss = opp_death + damage_ratio * opp_damage
+    
+    player_loss = calculate_death_loss(player_death_percent, player_death) + damage_ratio * player_damage
+    opp_loss = calculate_death_loss(opp_death_percent, opp_death) + damage_ratio * opp_damage
 
     base_reward = opp_loss - player_loss
     
-    #TODO: Add some reward shaping
-    # Add potential-based reward shaping
-    # final_reward = add_potential_based_reward(prev_gs, next_gs, player_port, opp_port, base_reward, gamma)
-    # if base_reward != 0:
-    #    print(f"player_death: {player_death}, opp_death: {opp_death}, player_damage: {player_damage}, opp_damage: {opp_damage}")
-    #    print(f"base_reward: {base_reward}")
-        
+    #reward shaping
+    
+    # not offstage bonus
+    # shape_reward = 0.0
+    #if next_gs.players[player_port].off_stage:
+    #    shape_reward +=  0.01 * (abs(prev_gs.players[player_port].position.x) - abs(next_gs.players[player_port].position.x))
+    
+    # close combat bonus
+    #shape_reward += 0.01 * get_distance(next_gs, player_port, opp_port)
+
     return base_reward

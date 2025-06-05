@@ -55,12 +55,13 @@ for btn in [SimpleButton.BUTTON_Z, SimpleButton.BUTTON_Y]:
 class MeleeEnv(env_class):
     metadata = {'render_modes': ['human']}
     
-    def __init__(self, config=None):
+    def __init__(self, config=None, slippi_port=51298):
         self.total_reward = 0
         if gym_module is not None:
             super().__init__()
             
         self.config = config if config is not None else CONFIG
+        self.config["slippi_port"] = slippi_port
         
         if spaces is not None:
             self.action_space = spaces.Discrete(len(ACTION_SPACE))
@@ -236,10 +237,9 @@ class MeleeEnv(env_class):
         
        
         prev_gs = self.prev_gamestate
-        next_gs = self.console.step()
-        if next_gs is None:
-            info = {"warning": "Received None gamestate"}
-            return None, 0.0, False, False, info
+        next_gs = None
+        while next_gs is None:
+            next_gs = self.console.step()
 
         if next_gs.menu_state in (Menu.CHARACTER_SELECT, Menu.STAGE_SELECT):
             observation = None 
