@@ -4,7 +4,7 @@
 
 - **Dolphin Emulator** (NoGUI or Headless build)
 - **Super Smash Bros. Melee ISO** (`ssbm.iso`)
-- **Python 3.x** environment with the `melee` package installed
+- **Python 3.10** environment with the `libmelee` package installed (Already in the repo)
 - **Slippi** integration enabled in Dolphin
 
 ## File Placement
