@@ -150,6 +150,14 @@ def calculate_death_loss(percent, death, percent_ratio=0.005):
     return 1 - (percent * percent_ratio) if 1 - (percent * percent_ratio) > 0 else 0.0
 
 
+def calculate_stage_distance_penalty(gs, player_port, stage_center_x=0, stage_center_y=0):
+    player = gs.players[player_port]
+    x, y = player.position.x, player.position.y
+    
+    distance = np.sqrt((x - stage_center_x)**2 + (y - stage_center_y)**2)
+    
+    return -distance
+
 def calculate_reward(prev_gs, next_gs, player_port, opp_port, damage_ratio=0.005, gamma=0.99):
     if prev_gs is None or next_gs is None:
         return 0.0
@@ -178,5 +186,14 @@ def calculate_reward(prev_gs, next_gs, player_port, opp_port, damage_ratio=0.005
     
     # close combat bonus
     #shape_reward += 0.01 * get_distance(next_gs, player_port, opp_port)
-
+    
+    # Encourage staying on-stage reward shaping
+    # shape_reward = 0.0
+    # if next_gs.players[player_port].off_stage:     
+    #     phi_prev = calculate_stage_distance_penalty(prev_gs, player_port)
+    #     phi_next = calculate_stage_distance_penalty(next_gs, player_port)
+        
+    #     # reward = base_reward + (γ × Φ(s') - Φ(s))
+    #     shape_reward = gamma * phi_next - phi_prev
+    
     return base_reward
